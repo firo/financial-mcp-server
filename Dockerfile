@@ -22,4 +22,4 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
 
 # Run the HTTP wrapper server
-CMD ["python", "-u", "mcp_http_wrapper.py"]
+CMD ["python", "-u", "-m", "uvicorn", "mcp_http_wrapper:app", "--host", "0.0.0.0", "--port", "8000"]

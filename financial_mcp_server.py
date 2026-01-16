@@ -535,15 +535,22 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
 # MAIN
 # ============================================================================
 
-# Funzione principale rimossa perché il server verrà eseguito tramite il wrapper HTTP
-# Il server originale MCP rimane disponibile per essere usato dal wrapper
+async def main():
+    """Avvia server MCP tramite STDIO (funzionalità originale)."""
+    async with stdio_server() as (read_stream, write_stream):
+        await app.run(read_stream, write_stream, app.create_initialization_options())
 
 def get_mcp_app():
     """Restituisce l'applicazione MCP per essere usata dal wrapper HTTP."""
     return app
 
 if __name__ == "__main__":
-    # Avvia il wrapper HTTP invece del server diretto
-    import subprocess
     import sys
-    subprocess.run([sys.executable, "mcp_http_wrapper.py"])
+    # Se viene eseguito direttamente, avvia il server STDIO originale
+    if len(sys.argv) > 1 and sys.argv[1] == "http":
+        # Se viene passato il parametro "http", avvia il wrapper
+        import subprocess
+        subprocess.run([sys.executable, "mcp_http_wrapper.py"])
+    else:
+        # Altrimenti, avvia il server STDIO originale
+        asyncio.run(main())
