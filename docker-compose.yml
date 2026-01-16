@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  financial-mcp-server:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+    command: python financial_mcp_server.py
