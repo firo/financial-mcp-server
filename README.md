@@ -94,6 +94,55 @@ Claude userà automaticamente:
 5. Fornirà una raccomandazione basata sui dati
 ```
 
+## 🐳 Utilizzo con Docker
+
+### Metodo 1: Build diretto da GitHub
+```bash
+# Build dell'immagine direttamente dal repository GitHub
+docker build -t financial-mcp-server https://github.com/firo/financial-mcp-server.git
+
+# Esecuzione del container
+docker run -p 8000:8000 financial-mcp-server
+```
+
+### Metodo 2: Docker Compose con contesto remoto
+```bash
+# Avvio del servizio usando docker-compose
+docker compose -f docker-compose.yml up financial-mcp-server
+```
+
+### Metodo 3: Clonando il repository localmente
+```bash
+# Clona il repository
+git clone https://github.com/firo/financial-mcp-server.git
+cd financial-mcp-server
+
+# Build e avvio
+docker build -t financial-mcp-server .
+docker run -p 8000:8000 financial-mcp-server
+```
+
+### Metodo 4: Docker Compose con build esplicito
+```bash
+# Build dell'immagine usando docker-compose
+docker compose -f docker-compose.yml build financial-mcp-server
+
+# Avvio del servizio
+docker compose -f docker-compose.yml up financial-mcp-server
+```
+
+### Metodo 5: Per ambiente di sviluppo
+```bash
+# Avvio in modalità sviluppo con volumi montati
+docker compose -f docker-compose.yml up financial-mcp-server-dev
+```
+
+### Metodo 6: Con Portainer
+Nel caso di Portainer:
+- Usa l'opzione "Build from Git repository" e inserisci l'URL: `https://github.com/firo/financial-mcp-server.git`
+- Specifica come Dockerfile path: `Dockerfile`
+- Successivamente crea un container dall'immagine appena creata
+
 ## 🌐 Self-hosting per accesso remoto
 
 ### Opzione 1: ngrok (più semplice)
