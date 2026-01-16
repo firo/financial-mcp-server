@@ -15,7 +15,7 @@ import numpy as np
 import pandas_ta as ta
 
 from mcp.server import Server
-from mcp.server.stdio import stdio_server
+from mcp.server.tcp import tcp_server
 from mcp.types import Resource, Tool, TextContent
 
 # ============================================================================
@@ -536,8 +536,8 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
 # ============================================================================
 
 async def main():
-    """Avvia server MCP."""
-    async with stdio_server() as (read_stream, write_stream):
+    """Avvia server MCP su TCP."""
+    async with tcp_server(host="0.0.0.0", port=8000) as (read_stream, write_stream):
         await app.run(read_stream, write_stream, app.create_initialization_options())
 
 if __name__ == "__main__":

@@ -7,8 +7,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - PYTHONPATH=/app
-    command: python financial_mcp_server.py
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
 
   financial-mcp-server-dev:
     build: .
@@ -18,4 +18,5 @@ services:
       - .:/app
     environment:
       - PYTHONPATH=/app
-    command: python financial_mcp_server.py
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

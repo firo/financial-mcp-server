@@ -156,7 +156,7 @@ brew install ngrok  # Mac
 python financial_mcp_server.py
 
 # Esponi con ngrok
-ngrok http 3000
+ngrok http 8000
 ```
 
 ### Opzione 2: VPS con reverse proxy
@@ -167,6 +167,47 @@ apt update && apt install nginx python3-pip
 
 # Setup nginx come reverse proxy
 # Configura SSL con Let's Encrypt
+```
+
+## 🔄 Aggiornamento automatico del server
+
+Dopo aver fatto modifiche al codice e fatto push su GitHub:
+
+1. Ferma il container attuale: `docker stop <nome_container>`
+2. Rimuovi l'immagine vecchia: `docker rmi financial-mcp-server`
+3. Ricrea l'immagine: `docker build -t financial-mcp-server .` (se hai il codice locale) oppure usa la versione da GitHub
+4. Avvia il nuovo container
+
+## 📡 Connessione da client esterni
+
+Una volta che il server è in esecuzione su TCP, i client (Claude, LLM Studio, ecc.) possono connettersi usando una configurazione simile a:
+
+```json
+{
+  "mcpServers": {
+    "financial-analysis": {
+      "endpoint": {
+        "uri": "http://tuoserver:8000",
+        "protocol": "tcp"
+      }
+    }
+  }
+}
+```
+
+Oppure se usi un dominio con HTTPS:
+
+```json
+{
+  "mcpServers": {
+    "financial-analysis": {
+      "endpoint": {
+        "uri": "https://tuodominio.com/mcp",
+        "protocol": "tcp"
+      }
+    }
+  }
+}
 ```
 
 ## 📝 License

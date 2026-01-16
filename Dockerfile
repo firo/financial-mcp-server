@@ -10,6 +10,9 @@ RUN git clone https://github.com/firo/financial-mcp-server.git ./
 
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Assicura che Python non bufferizzi l'output
+ENV PYTHONUNBUFFERED=1
+
 EXPOSE 8000
 
-CMD ["python", "financial_mcp_server.py"]
+CMD ["python", "-u", "financial_mcp_server.py"]
