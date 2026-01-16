@@ -1,0 +1,9 @@
+*
+!/financial_mcp_server.py
+!/README.md
+!/test_tool_indicatori.py
+!/test_tool_portafoglio.py
+!/requirements.txt
+!/Dockerfile
+!/docker-compose.yml
+!/mcp_http_wrapper.py
