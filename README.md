@@ -44,7 +44,7 @@ docker-compose logs -f
 6. **analisi_stagionalita** - Seasonal patterns
 7. **analisi_trend** - Trend analysis with moving averages
 8. **analisi_completa** - Complete analysis
-9. **get_realtime_quotes** - Real-time quotes for a list of tickers
+9. **ottieni_quote_ora** - Real-time quotes for a list of tickers
 
 ## 🧪 Testing
 
