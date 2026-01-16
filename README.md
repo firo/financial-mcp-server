@@ -37,15 +37,15 @@ docker-compose logs -f
 ## 🛠️ Tools Disponibili
 
 ### Indicatori Tecnici
-1. **calcola_rsi** - Relative Strength Index
-2. **calcola_momentum** - Momentum price change
-3. **calcola_macd** - MACD indicator
-4. **calcola_bollinger_bands** - Bollinger Bands
-5. **calcola_volatilita** - Annualized volatility
-6. **analisi_stagionalita** - Seasonal patterns
-7. **analisi_trend** - Trend analysis with moving averages
-8. **analisi_completa** - Complete analysis
-9. **ottieni_quote_ora** - Real-time quotes for a list of tickers
+1. **calcola_rsi** - Indice di Forza Relativa
+2. **calcola_momentum** - Variazione di prezzo a momento
+3. **calcola_macd** - Indicatore MACD
+4. **calcola_bollinger_bands** - Banda di Bollinger
+5. **calcola_volatilita** - Volatilità annualizzata
+6. **analisi_stagionalita** - Pattern stagionali
+7. **analisi_trend** - Analisi di tendenza con medie mobili
+8. **analisi_completa** - Analisi completa
+9. **ottieni_quote_ora** - Quotazioni in tempo reale per una lista di ticker
 
 ### Gestione Portafoglio
 10. **valuta_portafoglio** - Valuta un portafoglio esistente
