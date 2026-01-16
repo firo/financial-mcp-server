@@ -13,7 +13,7 @@ from financial_mcp_server import (
     calcola_macd,
     analisi_stagionalita,
     analisi_trend,
-    get_realtime_quotes
+    ottieni_quote_ora
 )
 
 async def test_basic_functions():
@@ -59,7 +59,7 @@ async def test_basic_functions():
     # Test Realtime Quotes
     print("\n7️⃣  Test Realtime Quotes...")
     tickers_to_test = ["AAPL", "MSFT"]
-    realtime_quotes = get_realtime_quotes(tickers_to_test)
+    realtime_quotes = ottieni_quote_ora(tickers_to_test)
     for t, data in realtime_quotes.items():
         print(f"   ✅ {t}: Prezzo {data['price']:.2f} @ {data['timestamp']}")
     
