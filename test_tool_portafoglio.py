@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from financial_mcp_server import (
     valuta_portafoglio,
+    proponi_portafoglio,
     crea_portafoglio,
     bilancia_portafoglio
 )
@@ -68,33 +69,33 @@ async def test_valuta_portafoglio():
             print(f"      Volatilità: {analisi.get('volatilita_annua')}%")
             print(f"      Settore: {analisi.get('settore')}")
 
-async def test_crea_portafoglio():
-    print_section("TEST 2: CREAZIONE PORTAFOGLIO")
-    
+async def test_proponi_portafoglio():
+    print_section("TEST 2: PROPOSTA PORTAFOGLIO")
+
     capitale = 10000
     obiettivo = "bilanciato"
     orizzonte = "medio"
     rischio = "moderato"
-    
+
     print(f"💰 Capitale: ${capitale:,.0f}")
     print(f"🎯 Obiettivo: {obiettivo}")
     print(f"📅 Orizzonte: {orizzonte} termine")
     print(f"⚠️  Rischio: {rischio}")
-    
-    print("\n⏳ Creazione portafoglio...\n")
-    
-    risultato = crea_portafoglio(capitale, obiettivo, orizzonte, rischio)
-    
+
+    print("\n⏳ Proposta portafoglio...\n")
+
+    risultato = proponi_portafoglio(capitale, obiettivo, orizzonte, rischio)
+
     print("✅ PORTAFOGLIO SUGGERITO:\n")
-    
+
     print("📊 ALLOCAZIONE PERCENTUALE:")
     for ticker, perc in risultato["allocazione_percentuale"].items():
         print(f"   {ticker}: {perc}%")
-    
+
     print(f"\n💵 ALLOCAZIONE IMPORTI:")
     for ticker, importo in risultato["allocazione_importi"].items():
         print(f"   {ticker}: ${importo:,.2f}")
-    
+
     print(f"\n📈 ANALISI ASSETS:")
     for ticker, analisi in risultato["analisi_assets"].items():
         if "error" not in analisi:
@@ -104,13 +105,13 @@ async def test_crea_portafoglio():
             print(f"      Importo: ${analisi.get('importo_effettivo', 0):,.2f}")
             print(f"      Volatilità: {analisi.get('volatilita', 0):.2f}%")
             print(f"      Momentum: {analisi.get('momentum', 0):.2f}%")
-    
+
     print(f"\n💰 Totale investito: ${risultato['totale_investito']:,.2f}")
     print(f"📝 Note: {risultato['note']}")
 
 async def test_bilancia_portafoglio():
     print_section("TEST 3: BILANCIAMENTO PORTAFOGLIO")
-    
+
     # Portafoglio corrente (sbilanciato)
     corrente = {
         "AAPL": 40.0,
@@ -118,7 +119,7 @@ async def test_bilancia_portafoglio():
         "GOOGL": 20.0,
         "BND": 10.0
     }
-    
+
     # Target (bilanciato)
     target = {
         "AAPL": 25.0,
@@ -126,28 +127,28 @@ async def test_bilancia_portafoglio():
         "GOOGL": 25.0,
         "BND": 25.0
     }
-    
+
     print("📊 PORTAFOGLIO CORRENTE:")
     for ticker, perc in corrente.items():
         print(f"   {ticker}: {perc}%")
-    
+
     print("\n🎯 ALLOCAZIONE TARGET:")
     for ticker, perc in target.items():
         print(f"   {ticker}: {perc}%")
-    
+
     print("\n⏳ Calcolo operazioni necessarie...\n")
-    
+
     risultato = bilancia_portafoglio(corrente, target)
-    
+
     print("✅ OPERAZIONI SUGGERITE:\n")
-    
+
     if risultato["operazioni_suggerite"]:
         for op in risultato["operazioni_suggerite"]:
             emoji = "📈" if op["azione"] == "ACQUISTA" else "📉"
             print(f"   {emoji} {op['azione']:10} {op['ticker']:6} -> {op['percentuale']:+6.2f}% (Priorità: {op['priorita']})")
     else:
         print("   ✅ Nessuna operazione necessaria")
-    
+
     print(f"\n📊 ANALISI:")
     analisi = risultato["analisi"]
     print(f"   Numero operazioni: {analisi['numero_operazioni']}")
@@ -156,21 +157,56 @@ async def test_bilancia_portafoglio():
     print(f"   Costo stimato commissioni: ${analisi['costo_stimato_commissioni']}")
     print(f"   💡 Consiglio: {analisi['consiglio']}")
 
+
+async def test_crea_struttura_portafoglio():
+    print_section("TEST 4: CREAZIONE STRUTTURA DATI PORTAFOGLIO")
+
+    nome_portafoglio = "Portafoglio di Test"
+    holdings = {
+        "AAPL": 30.0,
+        "MSFT": 25.0,
+        "GOOGL": 20.0,
+        "TSLA": 15.0,
+        "BND": 10.0
+    }
+
+    meta_info = {
+        "descrizione": "Portafoglio di test per verifica struttura dati",
+        "categoria": "growth",
+        "data_inizio": "2024-01-01",
+        "gestore": "test_user"
+    }
+
+    print(f"🏷️  Nome portafoglio: {nome_portafoglio}")
+    print(f"📊 Holdings:")
+    for ticker, perc in holdings.items():
+        print(f"   {ticker}: {perc}%")
+
+    print(f"\n📋 Meta informazioni: {json.dumps(meta_info, indent=4)}")
+
+    print("\n⏳ Creazione struttura dati portafoglio...\n")
+
+    risultato = crea_portafoglio(nome_portafoglio, holdings, meta_info)
+
+    print("✅ STRUTTURA PORTAFOGLIO CREATO:\n")
+    print(json.dumps(risultato, indent=2, ensure_ascii=False))
+
 async def test_tutti():
     """Esegue tutti i test"""
     print("\n" + "🚀" * 40)
     print("    TEST COMPLETO TOOLS GESTIONE PORTAFOGLIO")
     print("🚀" * 40)
-    
+
     try:
         await test_valuta_portafoglio()
-        await test_crea_portafoglio()
+        await test_proponi_portafoglio()
         await test_bilancia_portafoglio()
-        
+        await test_crea_struttura_portafoglio()
+
         print("\n" + "=" * 80)
         print("✅ TUTTI I TEST COMPLETATI CON SUCCESSO!")
         print("=" * 80 + "\n")
-        
+
     except Exception as e:
         print(f"\n❌ ERRORE: {e}")
         import traceback

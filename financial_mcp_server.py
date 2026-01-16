@@ -272,8 +272,8 @@ def valuta_portafoglio(holdings: Dict[str, float]) -> Dict[str, Any]:
     return risultati
 
 
-def crea_portafoglio(capitale: float, obiettivo: str = "bilanciato", orizzonte: str = "medio", rischio: str = "moderato") -> Dict[str, Any]:
-    """Crea portafoglio ottimizzato."""
+def proponi_portafoglio(capitale: float, obiettivo: str = "bilanciato", orizzonte: str = "medio", rischio: str = "moderato") -> Dict[str, Any]:
+    """Propone un portafoglio ottimizzato."""
     templates = {
         "conservativo_bilanciato": {"BND": 40, "VTI": 25, "VXUS": 15, "VNQ": 10, "GLD": 10},
         "moderato_bilanciato": {"VTI": 35, "VXUS": 25, "BND": 20, "VNQ": 10, "QQQ": 10},
@@ -285,11 +285,11 @@ def crea_portafoglio(capitale: float, obiettivo: str = "bilanciato", orizzonte: 
         "moderato_reddito": {"VYM": 35, "BND": 30, "VNQ": 20, "VTI": 15},
         "aggressivo_reddito": {"VYM": 40, "VNQ": 25, "VTI": 20, "BND": 15}
     }
-    
+
     template_key = f"{rischio}_{obiettivo}"
     allocazione = templates.get(template_key, templates["moderato_bilanciato"])
     importi = {ticker: (perc / 100) * capitale for ticker, perc in allocazione.items()}
-    
+
     analisi_assets = {}
     for ticker in allocazione.keys():
         try:
@@ -304,7 +304,7 @@ def crea_portafoglio(capitale: float, obiettivo: str = "bilanciato", orizzonte: 
                 }
         except:
             analisi_assets[ticker] = {"error": "Dati non disponibili"}
-    
+
     return {
         "profilo": {"capitale": capitale, "obiettivo": obiettivo, "orizzonte_temporale": orizzonte, "tolleranza_rischio": rischio},
         "allocazione_percentuale": allocazione,
@@ -313,6 +313,38 @@ def crea_portafoglio(capitale: float, obiettivo: str = "bilanciato", orizzonte: 
         "totale_investito": sum(a.get("importo_effettivo", 0) for a in analisi_assets.values()),
         "note": f"Portafoglio {obiettivo} con profilo {rischio}"
     }
+
+
+def crea_portafoglio(nome: str, holdings: Dict[str, float], meta: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Crea una struttura dati formale per rappresentare un portafoglio."""
+    if not nome:
+        raise ValueError("Il nome del portafoglio è obbligatorio")
+
+    # Validazione holdings
+    if not holdings:
+        raise ValueError("Il portafoglio deve contenere almeno un asset")
+
+    # Controllo che le percentuali sommino a 100%
+    totale_percentuale = sum(holdings.values())
+    if abs(totale_percentuale - 100.0) > 0.1:
+        raise ValueError(f"Le percentuali degli asset devono sommare a 100%, attuale: {totale_percentuale}%")
+
+    # Struttura dati standardizzata per il portafoglio
+    portfolio_structure = {
+        "nome": nome,
+        "tipo": "portfolio",
+        "versione": "1.0",
+        "data_creazione": datetime.now().isoformat(),
+        "holdings": holdings,  # formato: {ticker: percentuale}
+        "meta": meta or {},
+        "validazione": {
+            "percentuale_totale": totale_percentuale,
+            "numero_asset": len(holdings),
+            "asset_validi": list(holdings.keys())
+        }
+    }
+
+    return portfolio_structure
 
 
 def bilancia_portafoglio(holdings_correnti: Dict[str, float], target_allocation: Optional[Dict[str, float]] = None, metodo: str = "ribilanciamento") -> Dict[str, Any]:
@@ -423,7 +455,8 @@ async def list_tools() -> list[Tool]:
         Tool(name="analisi_completa", description="Analisi completa", inputSchema={"type": "object", "properties": {"ticker": {"type": "string"}}, "required": ["ticker"]}),
         Tool(name="ottieni_quote_ora", description="Restituisce quotazioni in tempo reale per una lista di ticker", inputSchema={"type": "object", "properties": {"tickers": {"type": "array", "items": {"type": "string"}}}, "required": ["tickers"]}),
         Tool(name="valuta_portafoglio", description="Valuta portafoglio", inputSchema={"type": "object", "properties": {"holdings": {"type": "object", "additionalProperties": {"type": "number"}}}, "required": ["holdings"]}),
-        Tool(name="crea_portafoglio", description="Crea portafoglio", inputSchema={"type": "object", "properties": {"capitale": {"type": "number"}, "obiettivo": {"type": "string", "default": "bilanciato"}, "orizzonte": {"type": "string", "default": "medio"}, "rischio": {"type": "string", "default": "moderato"}}, "required": ["capitale"]}),
+        Tool(name="proponi_portafoglio", description="Propone un portafoglio ottimizzato", inputSchema={"type": "object", "properties": {"capitale": {"type": "number"}, "obiettivo": {"type": "string", "default": "bilanciato"}, "orizzonte": {"type": "string", "default": "medio"}, "rischio": {"type": "string", "default": "moderato"}}, "required": ["capitale"]}),
+        Tool(name="crea_portafoglio", description="Crea una struttura dati formale per rappresentare un portafoglio", inputSchema={"type": "object", "properties": {"nome": {"type": "string"}, "holdings": {"type": "object", "additionalProperties": {"type": "number"}}, "meta": {"type": "object", "additionalProperties": True}}, "required": ["nome", "holdings"]}),
         Tool(name="bilancia_portafoglio", description="Bilancia portafoglio", inputSchema={"type": "object", "properties": {"holdings_correnti": {"type": "object", "additionalProperties": {"type": "number"}}, "target_allocation": {"type": "object", "additionalProperties": {"type": "number"}}}, "required": ["holdings_correnti"]})
     ]
 
@@ -432,15 +465,21 @@ async def list_tools() -> list[Tool]:
 async def call_tool(name: str, arguments: Any) -> list[TextContent]:
     """Esegue tool."""
     try:
-        if name in ["valuta_portafoglio", "crea_portafoglio", "bilancia_portafoglio", "ottieni_quote_ora"]:
+        if name in ["valuta_portafoglio", "proponi_portafoglio", "bilancia_portafoglio", "ottieni_quote_ora", "crea_portafoglio"]:
             if name == "valuta_portafoglio":
                 result = valuta_portafoglio(arguments.get("holdings", {}))
-            elif name == "crea_portafoglio":
-                result = crea_portafoglio(arguments.get("capitale"), arguments.get("obiettivo", "bilanciato"), arguments.get("orizzonte", "medio"), arguments.get("rischio", "moderato"))
+            elif name == "proponi_portafoglio":
+                result = proponi_portafoglio(arguments.get("capitale"), arguments.get("obiettivo", "bilanciato"), arguments.get("orizzonte", "medio"), arguments.get("rischio", "moderato"))
             elif name == "bilancia_portafoglio":
                 result = bilancia_portafoglio(arguments.get("holdings_correnti", {}), arguments.get("target_allocation"))
             elif name == "ottieni_quote_ora":
                 result = ottieni_quote_ora(arguments.get("tickers", []))
+            elif name == "crea_portafoglio":
+                result = crea_portafoglio(
+                    arguments.get("nome", ""),
+                    arguments.get("holdings", {}),
+                    arguments.get("meta")
+                )
         else:
             ticker = arguments.get("ticker", "").upper()
             if not ticker:

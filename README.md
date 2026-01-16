@@ -49,8 +49,9 @@ docker-compose logs -f
 
 ### Gestione Portafoglio
 10. **valuta_portafoglio** - Valuta un portafoglio esistente
-11. **crea_portafoglio** - Crea un nuovo portafoglio ottimizzato
-12. **bilancia_portafoglio** - Bilancia un portafoglio esistente
+11. **proponi_portafoglio** - Propone un portafoglio ottimizzato
+12. **crea_portafoglio** - Crea una struttura dati formale per rappresentare un portafoglio
+13. **bilancia_portafoglio** - Bilancia un portafoglio esistente
 
 ## 🧪 Testing
 
