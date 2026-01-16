@@ -21,4 +21,5 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
-CMD ["python", "-u", "financial_mcp_server.py"]
+# Run the HTTP wrapper server
+CMD ["python", "-u", "mcp_http_wrapper.py"]

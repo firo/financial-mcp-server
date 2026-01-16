@@ -180,22 +180,22 @@ Dopo aver fatto modifiche al codice e fatto push su GitHub:
 
 ## 📡 Connessione da client esterni
 
-Una volta che il server è in esecuzione su TCP, i client (Claude, LLM Studio, ecc.) possono connettersi usando una configurazione simile a:
+Una volta che il server è in esecuzione, i client (Claude, LLM Studio, ecc.) possono connettersi usando una configurazione simile a:
 
 ```json
 {
   "mcpServers": {
     "financial-analysis": {
       "endpoint": {
-        "uri": "http://tuoserver:8000",
-        "protocol": "tcp"
+        "uri": "http://tuoserver:8000/mcp",
+        "protocol": "http"
       }
     }
   }
 }
 ```
 
-Oppure se usi un dominio con HTTPS:
+Oppure se usi un dominio con HTTPS e reverse proxy:
 
 ```json
 {
@@ -203,12 +203,23 @@ Oppure se usi un dominio con HTTPS:
     "financial-analysis": {
       "endpoint": {
         "uri": "https://tuodominio.com/mcp",
-        "protocol": "tcp"
+        "protocol": "http"
       }
     }
   }
 }
 ```
+
+## 🔄 Aggiornamento automatico del server
+
+Dopo aver fatto modifiche al codice e fatto push su GitHub:
+
+1. Ferma il container attuale: `docker stop <nome_container>`
+2. Rimuovi l'immagine vecchia: `docker rmi financial-mcp-server`
+3. Ricrea l'immagine: `docker build -t financial-mcp-server .` (se hai il codice locale) oppure usa la versione da GitHub
+4. Avvia il nuovo container
+
+Il server include un wrapper HTTP che espone le funzionalità MCP tramite endpoint HTTP standard, consentendo connessioni multiple da diversi client contemporaneamente.
 
 ## 📝 License
 

@@ -15,7 +15,7 @@ import numpy as np
 import pandas_ta as ta
 
 from mcp.server import Server
-from mcp.server.tcp import tcp_server
+from mcp.server.stdio import stdio_server
 from mcp.types import Resource, Tool, TextContent
 
 # ============================================================================
@@ -535,10 +535,15 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
 # MAIN
 # ============================================================================
 
-async def main():
-    """Avvia server MCP su TCP."""
-    async with tcp_server(host="0.0.0.0", port=8000) as (read_stream, write_stream):
-        await app.run(read_stream, write_stream, app.create_initialization_options())
+# Funzione principale rimossa perché il server verrà eseguito tramite il wrapper HTTP
+# Il server originale MCP rimane disponibile per essere usato dal wrapper
+
+def get_mcp_app():
+    """Restituisce l'applicazione MCP per essere usata dal wrapper HTTP."""
+    return app
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # Avvia il wrapper HTTP invece del server diretto
+    import subprocess
+    import sys
+    subprocess.run([sys.executable, "mcp_http_wrapper.py"])
