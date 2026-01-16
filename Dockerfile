@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -13,8 +13,8 @@ RUN python -m pip install --upgrade pip setuptools wheel
 # Clone the repository
 RUN git clone https://github.com/firo/financial-mcp-server.git ./
 
-# Install requirements (allow pre-releases if some deps are beta)
-RUN pip install --pre --no-cache-dir -r requirements.txt
+# Install requirements
+RUN pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 8000
 
