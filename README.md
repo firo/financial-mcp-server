@@ -36,6 +36,7 @@ docker-compose logs -f
 
 ## 🛠️ Tools Disponibili
 
+### Indicatori Tecnici
 1. **calcola_rsi** - Relative Strength Index
 2. **calcola_momentum** - Momentum price change
 3. **calcola_macd** - MACD indicator
@@ -45,6 +46,11 @@ docker-compose logs -f
 7. **analisi_trend** - Trend analysis with moving averages
 8. **analisi_completa** - Complete analysis
 9. **ottieni_quote_ora** - Real-time quotes for a list of tickers
+
+### Gestione Portafoglio
+10. **valuta_portafoglio** - Valuta un portafoglio esistente
+11. **crea_portafoglio** - Crea un nuovo portafoglio ottimizzato
+12. **bilancia_portafoglio** - Bilancia un portafoglio esistente
 
 ## 🧪 Testing
 
