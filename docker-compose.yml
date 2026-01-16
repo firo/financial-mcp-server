@@ -5,6 +5,14 @@ services:
     build: .
     ports:
       - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+    command: python financial_mcp_server.py
+
+  financial-mcp-server-dev:
+    build: .
+    ports:
+      - "8001:8000"
     volumes:
       - .:/app
     environment:
