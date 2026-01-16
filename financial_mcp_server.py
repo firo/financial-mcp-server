@@ -71,13 +71,13 @@ def parse_ticker_uri(uri: str) -> Tuple[str, str]:
     return ticker, resource_type
 
 
-def get_realtime_quotes(tickers: list[str]) -> dict:
+def ottieni_quote_realtime(tickers: list[str]) -> dict:
     """
     Restituisce il prezzo di chiusura più recente per ogni ticker.
-    
+
     Args:
         tickers: lista di ticker (es. ['SPY', 'GLD'])
-        
+
     Returns:
         dict con la struttura {ticker: {'price': float, 'timestamp': datetime}}
     """
@@ -421,7 +421,7 @@ async def list_tools() -> list[Tool]:
         Tool(name="analisi_stagionalita", description="Analizza stagionalità", inputSchema={"type": "object", "properties": {"ticker": {"type": "string"}}, "required": ["ticker"]}),
         Tool(name="analisi_trend", description="Analizza trend", inputSchema={"type": "object", "properties": {"ticker": {"type": "string"}}, "required": ["ticker"]}),
         Tool(name="analisi_completa", description="Analisi completa", inputSchema={"type": "object", "properties": {"ticker": {"type": "string"}}, "required": ["ticker"]}),
-        Tool(name="get_realtime_quotes", description="Restituisce quotazioni in tempo reale per una lista di ticker", inputSchema={"type": "object", "properties": {"tickers": {"type": "array", "items": {"type": "string"}}}, "required": ["tickers"]}),
+        Tool(name="ottieni_quote_realtime", description="Restituisce quotazioni in tempo reale per una lista di ticker", inputSchema={"type": "object", "properties": {"tickers": {"type": "array", "items": {"type": "string"}}}, "required": ["tickers"]}),
         Tool(name="valuta_portafoglio", description="Valuta portafoglio", inputSchema={"type": "object", "properties": {"holdings": {"type": "object", "additionalProperties": {"type": "number"}}}, "required": ["holdings"]}),
         Tool(name="crea_portafoglio", description="Crea portafoglio", inputSchema={"type": "object", "properties": {"capitale": {"type": "number"}, "obiettivo": {"type": "string", "default": "bilanciato"}, "orizzonte": {"type": "string", "default": "medio"}, "rischio": {"type": "string", "default": "moderato"}}, "required": ["capitale"]}),
         Tool(name="bilancia_portafoglio", description="Bilancia portafoglio", inputSchema={"type": "object", "properties": {"holdings_correnti": {"type": "object", "additionalProperties": {"type": "number"}}, "target_allocation": {"type": "object", "additionalProperties": {"type": "number"}}}, "required": ["holdings_correnti"]})
@@ -432,15 +432,15 @@ async def list_tools() -> list[Tool]:
 async def call_tool(name: str, arguments: Any) -> list[TextContent]:
     """Esegue tool."""
     try:
-        if name in ["valuta_portafoglio", "crea_portafoglio", "bilancia_portafoglio", "get_realtime_quotes"]:
+        if name in ["valuta_portafoglio", "crea_portafoglio", "bilancia_portafoglio", "ottieni_quote_realtime"]:
             if name == "valuta_portafoglio":
                 result = valuta_portafoglio(arguments.get("holdings", {}))
             elif name == "crea_portafoglio":
                 result = crea_portafoglio(arguments.get("capitale"), arguments.get("obiettivo", "bilanciato"), arguments.get("orizzonte", "medio"), arguments.get("rischio", "moderato"))
             elif name == "bilancia_portafoglio":
                 result = bilancia_portafoglio(arguments.get("holdings_correnti", {}), arguments.get("target_allocation"))
-            elif name == "get_realtime_quotes":
-                result = get_realtime_quotes(arguments.get("tickers", []))
+            elif name == "ottieni_quote_realtime":
+                result = ottieni_quote_realtime(arguments.get("tickers", []))
         else:
             ticker = arguments.get("ticker", "").upper()
             if not ticker:
