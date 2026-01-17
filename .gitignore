@@ -6,3 +6,4 @@
 !/requirements.txt
 !/Dockerfile
 !/docker-compose.yml
+!/mcp_streamable_wrapper.py

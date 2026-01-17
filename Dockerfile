@@ -21,5 +21,5 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
-# Run the MCP server with Streamable HTTP transport
-CMD ["python", "-u", "financial_mcp_server.py"]
+# Run the Streamable HTTP wrapper
+CMD ["python", "-u", "-m", "uvicorn", "mcp_streamable_wrapper:app", "--host", "0.0.0.0", "--port", "8000"]

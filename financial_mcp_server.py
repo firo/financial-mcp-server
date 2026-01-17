@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
-Financial Analysis MCP Server - Versione con Streamable HTTP Transport
-Server MCP per analisi tecnica, fondamentale e gestione portafogli con supporto Streamable HTTP
+Financial Analysis MCP Server - Versione Completa
+Server MCP per analisi tecnica, fondamentale e gestione portafogli
 """
 
 import asyncio
 import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
-from contextlib import asynccontextmanager
 
 import yfinance as yf
 import pandas as pd
 import numpy as np
 import pandas_ta as ta
 
-from fastmcp import Server, tool, resource
-from fastmcp.transports.http import HTTPTransport
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+from mcp.types import Resource, Tool, TextContent
 
 # ============================================================================
 # CONFIGURAZIONE
@@ -26,7 +26,7 @@ CACHE_DURATION = 300
 RSI_OVERBOUGHT = 70
 RSI_OVERSOLD = 30
 
-# Cache globale per i dati
+app = Server("financial-analysis-server")
 _data_cache: Dict[str, Dict[str, Any]] = {}
 
 # ============================================================================
@@ -83,7 +83,7 @@ def ottieni_quote_ora(tickers: list[str]) -> dict:
     """
     quotes = {}
     for t in tickers:
-        # Scarica l'ultimo periodo (default 1d) e prende l'ultima riga
+        # Scarica l'ultimo periodo (default 1d) e prende l’ultima riga
         data = yf.Ticker(t).history(period="1d")
         if not data.empty:
             price   = float(data['Close'].iloc[-1])
@@ -148,7 +148,7 @@ def calcola_volatilita(df: pd.DataFrame, periodo: int = 30) -> float:
 
 
 def analisi_stagionalita(df: pd.DataFrame) -> Dict[str, Any]:
-    """Analisi pattern stagionali."""
+    """Analizza pattern stagionali."""
     df_copia = df.copy()
     df_copia['Mese'] = df_copia.index.month
     df_copia['Rendimento'] = df_copia['Close'].pct_change() * 100
@@ -168,7 +168,7 @@ def analisi_stagionalita(df: pd.DataFrame) -> Dict[str, Any]:
 
 
 def analisi_trend(df: pd.DataFrame) -> Dict[str, Any]:
-    """Analisi trend con medie mobili."""
+    """Analizza trend con medie mobili."""
     prezzo = df['Close'].iloc[-1]
     ma_50 = df['Close'].rolling(50).mean().iloc[-1]
     ma_200 = df['Close'].rolling(200).mean().iloc[-1]
@@ -403,304 +403,142 @@ def bilancia_portafoglio(holdings_correnti: Dict[str, float], target_allocation:
     return risultati
 
 # ============================================================================
-# MCP SERVER DEFINITION
-# ============================================================================
-
-# Creazione del server con transport HTTP
-server = Server(
-    name="financial-analysis-server",
-    description="Server MCP per analisi finanziaria tecnica e di portafoglio"
-)
-
-# ============================================================================
 # MCP RESOURCES
 # ============================================================================
 
-@resource(
-    uri_template="financial://ticker/{ticker}/history",
-    name="Historical Price Data",
-    description="Dati storici",
-    mime_type="application/json"
-)
-async def read_history_resource(ticker: str) -> str:
-    """Leggi risorsa dati storici."""
+@app.list_resources()
+async def list_resources() -> list[Resource]:
+    """Elenca risorse."""
+    return [
+        Resource(uri="financial://ticker/{ticker}/history", name="Historical Price Data", description="Dati storici", mimeType="application/json"),
+        Resource(uri="financial://ticker/{ticker}/info", name="Company Information", description="Info aziendali", mimeType="application/json"),
+        Resource(uri="financial://ticker/{ticker}/quote", name="Current Quote", description="Quotazione corrente", mimeType="application/json")
+    ]
+
+
+@app.read_resource()
+async def read_resource(uri: str) -> str:
+    """Leggi risorsa."""
+    ticker, resource_type = parse_ticker_uri(uri)
+    if not ticker:
+        return json.dumps({"error": "Ticker non valido"})
+
     try:
         df, info = get_cached_data(ticker)
-        return json.dumps({
-            "ticker": ticker.upper(),
-            "data": df.tail(100).reset_index().to_dict(orient="records")
-        }, default=str)
+
+        if resource_type == "history":
+            return json.dumps({"ticker": ticker, "data": df.tail(100).reset_index().to_dict(orient="records")}, default=str)
+        elif resource_type == "info":
+            return json.dumps({"ticker": ticker, "nome": info.get("longName", "N/A"), "settore": info.get("sector", "N/A")})
+        elif resource_type == "quote":
+            return json.dumps({"ticker": ticker, "prezzo": float(df['Close'].iloc[-1]), "volume": int(df['Volume'].iloc[-1])})
     except Exception as e:
         return json.dumps({"error": str(e)})
 
-
-@resource(
-    uri_template="financial://ticker/{ticker}/info",
-    name="Company Information",
-    description="Info aziendali",
-    mime_type="application/json"
-)
-async def read_info_resource(ticker: str) -> str:
-    """Leggi risorsa informazioni aziendali."""
-    try:
-        df, info = get_cached_data(ticker)
-        return json.dumps({
-            "ticker": ticker.upper(),
-            "nome": info.get("longName", "N/A"),
-            "settore": info.get("sector", "N/A"),
-            "tipo": info.get("quoteType", "N/A")
-        })
-    except Exception as e:
-        return json.dumps({"error": str(e)})
-
-
-@resource(
-    uri_template="financial://ticker/{ticker}/quote",
-    name="Current Quote",
-    description="Quotazione corrente",
-    mime_type="application/json"
-)
-async def read_quote_resource(ticker: str) -> str:
-    """Leggi risorsa quotazione corrente."""
-    try:
-        df, info = get_cached_data(ticker)
-        return json.dumps({
-            "ticker": ticker.upper(),
-            "prezzo": float(df['Close'].iloc[-1]),
-            "volume": int(df['Volume'].iloc[-1])
-        })
-    except Exception as e:
-        return json.dumps({"error": str(e)})
+    return json.dumps({"error": "Resource type non supportato"})
 
 # ============================================================================
 # MCP TOOLS
 # ============================================================================
 
-@tool(
-    name="calcola_rsi",
-    description="Calcola RSI (Relative Strength Index)",
-    parameters={
-        "type": "object",
-        "properties": {
-            "ticker": {"type": "string", "description": "Simbolo azionario"},
-            "periodo": {"type": "number", "default": 14, "description": "Periodo per il calcolo RSI"}
-        },
-        "required": ["ticker"]
-    }
-)
-async def tool_calcola_rsi(ticker: str, periodo: int = 14) -> Dict[str, Any]:
-    """Tool per calcolare RSI."""
+@app.list_tools()
+async def list_tools() -> list[Tool]:
+    """Elenca tools."""
+    return [
+        Tool(name="calcola_rsi", description="Calcola RSI", inputSchema={"type": "object", "properties": {"ticker": {"type": "string"}, "periodo": {"type": "number", "default": 14}}, "required": ["ticker"]}),
+        Tool(name="calcola_momentum", description="Calcola momentum", inputSchema={"type": "object", "properties": {"ticker": {"type": "string"}, "periodo": {"type": "number", "default": 10}}, "required": ["ticker"]}),
+        Tool(name="calcola_macd", description="Calcola MACD", inputSchema={"type": "object", "properties": {"ticker": {"type": "string"}}, "required": ["ticker"]}),
+        Tool(name="calcola_bollinger_bands", description="Calcola Bollinger Bands", inputSchema={"type": "object", "properties": {"ticker": {"type": "string"}, "periodo": {"type": "number", "default": 20}}, "required": ["ticker"]}),
+        Tool(name="calcola_volatilita", description="Calcola volatilità", inputSchema={"type": "object", "properties": {"ticker": {"type": "string"}, "periodo": {"type": "number", "default": 30}}, "required": ["ticker"]}),
+        Tool(name="analisi_stagionalita", description="Analizza stagionalità", inputSchema={"type": "object", "properties": {"ticker": {"type": "string"}}, "required": ["ticker"]}),
+        Tool(name="analisi_trend", description="Analizza trend", inputSchema={"type": "object", "properties": {"ticker": {"type": "string"}}, "required": ["ticker"]}),
+        Tool(name="analisi_completa", description="Analisi completa", inputSchema={"type": "object", "properties": {"ticker": {"type": "string"}}, "required": ["ticker"]}),
+        Tool(name="ottieni_quote_ora", description="Restituisce quotazioni in tempo reale per una lista di ticker", inputSchema={"type": "object", "properties": {"tickers": {"type": "array", "items": {"type": "string"}}}, "required": ["tickers"]}),
+        Tool(name="valuta_portafoglio", description="Valuta portafoglio", inputSchema={"type": "object", "properties": {"holdings": {"type": "object", "additionalProperties": {"type": "number"}}}, "required": ["holdings"]}),
+        Tool(name="proponi_portafoglio", description="Propone un portafoglio ottimizzato", inputSchema={"type": "object", "properties": {"capitale": {"type": "number"}, "obiettivo": {"type": "string", "default": "bilanciato"}, "orizzonte": {"type": "string", "default": "medio"}, "rischio": {"type": "string", "default": "moderato"}}, "required": ["capitale"]}),
+        Tool(name="crea_portafoglio", description="Crea una struttura dati formale per rappresentare un portafoglio", inputSchema={"type": "object", "properties": {"nome": {"type": "string"}, "holdings": {"type": "object", "additionalProperties": {"type": "number"}}, "meta": {"type": "object", "additionalProperties": True}}, "required": ["nome", "holdings"]}),
+        Tool(name="bilancia_portafoglio", description="Bilancia portafoglio", inputSchema={"type": "object", "properties": {"holdings_correnti": {"type": "object", "additionalProperties": {"type": "number"}}, "target_allocation": {"type": "object", "additionalProperties": {"type": "number"}}}, "required": ["holdings_correnti"]})
+    ]
+
+
+@app.call_tool()
+async def call_tool(name: str, arguments: Any) -> list[TextContent]:
+    """Esegue tool."""
     try:
-        df, info = get_cached_data(ticker)
-        if df.empty:
-            return {"error": f"Dati non disponibili per {ticker}"}
-        
-        rsi_value = calcola_rsi(df, periodo)
-        return {
-            "ticker": ticker.upper(),
-            "rsi": rsi_value,
-            "interpretazione": "Sovravenduto" if rsi_value > RSI_OVERBOUGHT else "Sottovalutato" if rsi_value < RSI_OVERSOLD else "Neutrale"
-        }
+        if name in ["valuta_portafoglio", "proponi_portafoglio", "bilancia_portafoglio", "ottieni_quote_ora", "crea_portafoglio"]:
+            if name == "valuta_portafoglio":
+                result = valuta_portafoglio(arguments.get("holdings", {}))
+            elif name == "proponi_portafoglio":
+                result = proponi_portafoglio(arguments.get("capitale"), arguments.get("obiettivo", "bilanciato"), arguments.get("orizzonte", "medio"), arguments.get("rischio", "moderato"))
+            elif name == "bilancia_portafoglio":
+                result = bilancia_portafoglio(arguments.get("holdings_correnti", {}), arguments.get("target_allocation"))
+            elif name == "ottieni_quote_ora":
+                result = ottieni_quote_ora(arguments.get("tickers", []))
+            elif name == "crea_portafoglio":
+                result = crea_portafoglio(
+                    arguments.get("nome", ""),
+                    arguments.get("holdings", {}),
+                    arguments.get("meta")
+                )
+        else:
+            ticker = arguments.get("ticker", "").upper()
+            if not ticker:
+                return [TextContent(type="text", text=json.dumps({"error": "Ticker richiesto"}))]
+
+            df, info = get_cached_data(ticker)
+            if df.empty:
+                return [TextContent(type="text", text=json.dumps({"error": f"Dati non disponibili per {ticker}"}))]
+
+            if name == "calcola_rsi":
+                result = {"ticker": ticker, "rsi": calcola_rsi(df, arguments.get("periodo", 14))}
+            elif name == "calcola_momentum":
+                result = {"ticker": ticker, "momentum": calcola_momentum(df, arguments.get("periodo", 10))}
+            elif name == "calcola_macd":
+                result = {"ticker": ticker, **calcola_macd(df)}
+            elif name == "calcola_bollinger_bands":
+                result = {"ticker": ticker, **calcola_bollinger_bands(df, arguments.get("periodo", 20))}
+            elif name == "calcola_volatilita":
+                result = {"ticker": ticker, "volatilita": calcola_volatilita(df, arguments.get("periodo", 30))}
+            elif name == "analisi_stagionalita":
+                result = {"ticker": ticker, **analisi_stagionalita(df)}
+            elif name == "analisi_trend":
+                result = {"ticker": ticker, **analisi_trend(df)}
+            elif name == "analisi_completa":
+                result = {
+                    "ticker": ticker,
+                    "nome_azienda": info.get("longName", ticker),
+                    "prezzo_corrente": float(df['Close'].iloc[-1]),
+                    "indicatori_tecnici": {
+                        "rsi": calcola_rsi(df),
+                        "momentum_10gg": calcola_momentum(df, 10),
+                        "macd": calcola_macd(df),
+                        "bollinger_bands": calcola_bollinger_bands(df),
+                        "volatilita": calcola_volatilita(df),
+                        "trend": analisi_trend(df)
+                    },
+                    "stagionalita": analisi_stagionalita(df),
+                    "fondamentali": {
+                        "pe_ratio": info.get("trailingPE"),
+                        "market_cap_mld": info.get("marketCap", 0) / 1e9 if info.get("marketCap") else None,
+                        "dividend_yield": info.get("dividendYield"),
+                        "beta": info.get("beta")
+                    }
+                }
+            else:
+                return [TextContent(type="text", text=json.dumps({"error": f"Tool '{name}' non riconosciuto"}))]
+
+        return [TextContent(type="text", text=json.dumps(result, indent=2))]
     except Exception as e:
-        return {"error": str(e)}
-
-
-@tool(
-    name="calcola_momentum",
-    description="Calcola momentum",
-    parameters={
-        "type": "object",
-        "properties": {
-            "ticker": {"type": "string", "description": "Simbolo azionario"},
-            "periodo": {"type": "number", "default": 10, "description": "Periodo per il calcolo momentum"}
-        },
-        "required": ["ticker"]
-    }
-)
-async def tool_calcola_momentum(ticker: str, periodo: int = 10) -> Dict[str, Any]:
-    """Tool per calcolare momentum."""
-    try:
-        df, info = get_cached_data(ticker)
-        if df.empty:
-            return {"error": f"Dati non disponibili per {ticker}"}
-        
-        momentum_value = calcola_momentum(df, periodo)
-        return {
-            "ticker": ticker.upper(),
-            "momentum": momentum_value,
-            "periodo": periodo
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
-
-@tool(
-    name="calcola_macd",
-    description="Calcola MACD",
-    parameters={
-        "type": "object",
-        "properties": {
-            "ticker": {"type": "string", "description": "Simbolo azionario"}
-        },
-        "required": ["ticker"]
-    }
-)
-async def tool_calcola_macd(ticker: str) -> Dict[str, Any]:
-    """Tool per calcolare MACD."""
-    try:
-        df, info = get_cached_data(ticker)
-        if df.empty:
-            return {"error": f"Dati non disponibili per {ticker}"}
-        
-        macd_result = calcola_macd(df)
-        return {
-            "ticker": ticker.upper(),
-            **macd_result
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
-
-@tool(
-    name="ottieni_quote_ora",
-    description="Restituisce quotazioni in tempo reale per una lista di ticker",
-    parameters={
-        "type": "object",
-        "properties": {
-            "tickers": {
-                "type": "array",
-                "items": {"type": "string"},
-                "description": "Lista di simboli azionari"
-            }
-        },
-        "required": ["tickers"]
-    }
-)
-async def tool_ottieni_quote_ora(tickers: List[str]) -> Dict[str, Any]:
-    """Tool per ottenere quotazioni in tempo reale."""
-    try:
-        quotes = ottieni_quote_ora(tickers)
-        return {
-            "quotes": quotes,
-            "count": len(quotes)
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
-
-@tool(
-    name="valuta_portafoglio",
-    description="Valuta un portafoglio esistente",
-    parameters={
-        "type": "object",
-        "properties": {
-            "holdings": {
-                "type": "object",
-                "additionalProperties": {"type": "number"},
-                "description": "Dizionario con ticker e percentuali"
-            }
-        },
-        "required": ["holdings"]
-    }
-)
-async def tool_valuta_portafoglio(holdings: Dict[str, float]) -> Dict[str, Any]:
-    """Tool per valutare un portafoglio."""
-    try:
-        risultato = valuta_portafoglio(holdings)
-        return risultato
-    except Exception as e:
-        return {"error": str(e)}
-
-
-@tool(
-    name="proponi_portafoglio",
-    description="Propone un portafoglio ottimizzato",
-    parameters={
-        "type": "object",
-        "properties": {
-            "capitale": {"type": "number", "description": "Capitale da investire"},
-            "obiettivo": {"type": "string", "default": "bilanciato", "description": "Obiettivo investimento"},
-            "orizzonte": {"type": "string", "default": "medio", "description": "Orizzonte temporale"},
-            "rischio": {"type": "string", "default": "moderato", "description": "Tolleranza al rischio"}
-        },
-        "required": ["capitale"]
-    }
-)
-async def tool_proponi_portafoglio(capitale: float, obiettivo: str = "bilanciato", orizzonte: str = "medio", rischio: str = "moderato") -> Dict[str, Any]:
-    """Tool per proporre un portafoglio ottimizzato."""
-    try:
-        risultato = proponi_portafoglio(capitale, obiettivo, orizzonte, rischio)
-        return risultato
-    except Exception as e:
-        return {"error": str(e)}
-
-
-@tool(
-    name="crea_portafoglio",
-    description="Crea una struttura dati formale per rappresentare un portafoglio",
-    parameters={
-        "type": "object",
-        "properties": {
-            "nome": {"type": "string", "description": "Nome del portafoglio"},
-            "holdings": {
-                "type": "object",
-                "additionalProperties": {"type": "number"},
-                "description": "Dizionario con ticker e percentuali"
-            },
-            "meta": {
-                "type": "object",
-                "additionalProperties": True,
-                "description": "Metadati aggiuntivi"
-            }
-        },
-        "required": ["nome", "holdings"]
-    }
-)
-async def tool_crea_portafoglio(nome: str, holdings: Dict[str, float], meta: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Tool per creare una struttura dati portafoglio."""
-    try:
-        risultato = crea_portafoglio(nome, holdings, meta)
-        return risultato
-    except Exception as e:
-        return {"error": str(e)}
-
-
-@tool(
-    name="bilancia_portafoglio",
-    description="Bilancia un portafoglio esistente",
-    parameters={
-        "type": "object",
-        "properties": {
-            "holdings_correnti": {
-                "type": "object",
-                "additionalProperties": {"type": "number"},
-                "description": "Holdings attuali"
-            },
-            "target_allocation": {
-                "type": "object",
-                "additionalProperties": {"type": "number"},
-                "description": "Allocazione target"
-            }
-        },
-        "required": ["holdings_correnti"]
-    }
-)
-async def tool_bilancia_portafoglio(holdings_correnti: Dict[str, float], target_allocation: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
-    """Tool per bilanciare un portafoglio."""
-    try:
-        risultato = bilancia_portafoglio(holdings_correnti, target_allocation)
-        return risultato
-    except Exception as e:
-        return {"error": str(e)}
+        return [TextContent(type="text", text=json.dumps({"error": str(e)}))]
 
 # ============================================================================
 # MAIN
 # ============================================================================
 
 async def main():
-    """Avvia server MCP con Streamable HTTP transport."""
-    transport = HTTPTransport(host="0.0.0.0", port=8000)
-    await server.start(transport=transport)
+    """Avvia server MCP."""
+    async with stdio_server() as (read_stream, write_stream):
+        await app.run(read_stream, write_stream, app.create_initialization_options())
 
 if __name__ == "__main__":
     asyncio.run(main())
