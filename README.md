@@ -180,15 +180,15 @@ Dopo aver fatto modifiche al codice e fatto push su GitHub:
 
 ## 📡 Connessione da client esterni
 
-Una volta che il server è in esecuzione, i client (Claude, LLM Studio, ecc.) possono connettersi usando una configurazione simile a:
+Una volta che il server è in esecuzione con Streamable HTTP transport, i client (Claude, LLM Studio, ecc.) possono connettersi usando una configurazione simile a:
 
 ```json
 {
   "mcpServers": {
     "financial-analysis": {
       "endpoint": {
-        "uri": "http://tuoserver:8000/mcp",
-        "protocol": "http"
+        "uri": "http://tuoserver:8000",
+        "protocol": "streamable-http"
       }
     }
   }
@@ -202,8 +202,8 @@ Oppure se usi un dominio con HTTPS e reverse proxy:
   "mcpServers": {
     "financial-analysis": {
       "endpoint": {
-        "uri": "https://tuodominio.com/mcp",
-        "protocol": "http"
+        "uri": "https://tuodominio.com",
+        "protocol": "streamable-http"
       }
     }
   }
@@ -219,7 +219,7 @@ Dopo aver fatto modifiche al codice e fatto push su GitHub:
 3. Ricrea l'immagine: `docker build -t financial-mcp-server .` (se hai il codice locale) oppure usa la versione da GitHub
 4. Avvia il nuovo container
 
-Il server include un wrapper HTTP che espone le funzionalità MCP tramite endpoint HTTP standard, consentendo connessioni multiple da diversi client contemporaneamente.
+Il server ora supporta connessioni multiple grazie al protocollo Streamable HTTP, consentendo a diversi client di connettersi contemporaneamente.
 
 ## 📝 License
 

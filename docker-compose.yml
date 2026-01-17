@@ -20,4 +20,4 @@ services:
       - PYTHONPATH=/app
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
-    command: ["python", "-u", "mcp_http_wrapper.py"]
+    command: ["python", "-u", "financial_mcp_server.py"]
