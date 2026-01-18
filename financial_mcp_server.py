@@ -29,6 +29,8 @@ RSI_OVERSOLD = 30
 app = Server("financial-analysis-server")
 _data_cache: Dict[str, Dict[str, Any]] = {}
 
+
+
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
@@ -87,7 +89,7 @@ def ottieni_quote_ora(tickers: list[str]) -> dict:
         data = yf.Ticker(t).history(period="1d")
         if not data.empty:
             price   = float(data['Close'].iloc[-1])
-            ts      = data.index[-1].to_pydatetime()
+            ts      = data.index[-1].to_pydatetime().strftime("%Y-%m-%dT%H:%M:%S")
             quotes[t] = {"price": price, "timestamp": ts}
     return quotes
 
@@ -315,7 +317,7 @@ def proponi_portafoglio(capitale: float, obiettivo: str = "bilanciato", orizzont
     }
 
 
-def crea_portafoglio(nome: str, holdings: Dict[str, float], meta: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def crea_portafoglio(nome: str, holdings: Dict[str, Any], meta: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Crea una struttura dati formale per rappresentare un portafoglio."""
     if not nome:
         raise ValueError("Il nome del portafoglio è obbligatorio")
@@ -325,9 +327,9 @@ def crea_portafoglio(nome: str, holdings: Dict[str, float], meta: Optional[Dict[
         raise ValueError("Il portafoglio deve contenere almeno un asset")
 
     # Controllo che le percentuali sommino a 100%
-    totale_percentuale = sum(holdings.values())
+    totale_percentuale = sum(h.get('percentuale', 0) for h in holdings.values())
     if abs(totale_percentuale - 100.0) > 0.1:
-        raise ValueError(f"Le percentuali degli asset devono sommare a 100%, attuale: {totale_percentuale}%")
+        raise ValueError(f"Le percentuali degli asset devono sommare a 100%, attuale: {totale_percentuale:.2f}%")
 
     # Struttura dati standardizzata per il portafoglio
     portfolio_structure = {
@@ -335,13 +337,15 @@ def crea_portafoglio(nome: str, holdings: Dict[str, float], meta: Optional[Dict[
         "tipo": "portfolio",
         "versione": "1.0",
         "data_creazione": datetime.now().isoformat(),
-        "holdings": holdings,  # formato: {ticker: percentuale}
+        "holdings": holdings,
         "meta": meta or {},
-        "validazione": {
-            "percentuale_totale": totale_percentuale,
-            "numero_asset": len(holdings),
-            "asset_validi": list(holdings.keys())
-        }
+    }
+
+    # Aggiunge una sezione di validazione per conferma
+    portfolio_structure["validazione"] = {
+        "percentuale_totale": totale_percentuale,
+        "numero_asset": len(holdings),
+        "asset_validi": list(holdings.keys()),
     }
 
     return portfolio_structure
@@ -456,7 +460,25 @@ async def list_tools() -> list[Tool]:
         Tool(name="ottieni_quote_ora", description="Restituisce quotazioni in tempo reale per una lista di ticker", inputSchema={"type": "object", "properties": {"tickers": {"type": "array", "items": {"type": "string"}}}, "required": ["tickers"]}),
         Tool(name="valuta_portafoglio", description="Valuta portafoglio", inputSchema={"type": "object", "properties": {"holdings": {"type": "object", "additionalProperties": {"type": "number"}}}, "required": ["holdings"]}),
         Tool(name="proponi_portafoglio", description="Propone un portafoglio ottimizzato", inputSchema={"type": "object", "properties": {"capitale": {"type": "number"}, "obiettivo": {"type": "string", "default": "bilanciato"}, "orizzonte": {"type": "string", "default": "medio"}, "rischio": {"type": "string", "default": "moderato"}}, "required": ["capitale"]}),
-        Tool(name="crea_portafoglio", description="Crea una struttura dati formale per rappresentare un portafoglio", inputSchema={"type": "object", "properties": {"nome": {"type": "string"}, "holdings": {"type": "object", "additionalProperties": {"type": "number"}}, "meta": {"type": "object", "additionalProperties": True}}, "required": ["nome", "holdings"]}),
+        Tool(name="crea_portafoglio", description="Crea una struttura dati formale per rappresentare un portafoglio", inputSchema={
+            "type": "object",
+            "properties": {
+                "nome": {"type": "string"},
+                "holdings": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                            "percentuale": {"type": "number"},
+                            "quantita": {"type": "number"}
+                        },
+                        "required": ["percentuale", "quantita"]
+                    }
+                },
+                "meta": {"type": "object"}
+            },
+            "required": ["nome", "holdings"]
+        }),
         Tool(name="bilancia_portafoglio", description="Bilancia portafoglio", inputSchema={"type": "object", "properties": {"holdings_correnti": {"type": "object", "additionalProperties": {"type": "number"}}, "target_allocation": {"type": "object", "additionalProperties": {"type": "number"}}}, "required": ["holdings_correnti"]})
     ]
 
