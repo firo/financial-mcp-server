@@ -37,21 +37,21 @@ docker-compose logs -f
 ## 🛠️ Tools Disponibili
 
 ### Indicatori Tecnici
-1. **calcola_rsi** - Indice di Forza Relativa
-2. **calcola_momentum** - Variazione di prezzo a momento
-3. **calcola_macd** - Indicatore MACD
-4. **calcola_bollinger_bands** - Banda di Bollinger
-5. **calcola_volatilita** - Volatilità annualizzata
-6. **analisi_stagionalita** - Pattern stagionali
-7. **analisi_trend** - Analisi di tendenza con medie mobili
-8. **analisi_completa** - Analisi completa
-9. **ottieni_quote_ora** - Quotazioni in tempo reale per una lista di ticker
+1. **calcola_rsi** - Calcola l'Indice di Forza Relativa (RSI) per identificare condizioni di ipercomprato/ipervenduto
+2. **calcola_momentum** - Misura la variazione di prezzo su un periodo specifico per identificare la forza del movimento
+3. **calcola_macd** - Calcola l'indicatore Moving Average Convergence Divergence (MACD) per identificare trend e segnali di acquisto/vendita
+4. **calcola_bollinger_bands** - Calcola le bande di Bollinger per analizzare la volatilità e identificare livelli di supporto/resistenza dinamici
+5. **calcola_volatilita** - Calcola la volatilità annualizzata per valutare il rischio associato all'asset
+6. **analisi_stagionalita** - Analizza i pattern stagionali per identificare periodi storici di performance positiva/negativa
+7. **analisi_trend** - Analizza la tendenza corrente utilizzando medie mobili (MA50 e MA200) per determinare la direzione del mercato
+8. **analisi_completa** - Fornisce un'analisi completa che combina indicatori tecnici, stagionalità e dati fondamentali
+9. **ottieni_quote_ora** - Ottiene le quotazioni in tempo reale per una lista di ticker
 
 ### Gestione Portafoglio
-10. **valuta_portafoglio** - Valuta un portafoglio esistente
-11. **proponi_portafoglio** - Propone un portafoglio ottimizzato
-12. **crea_portafoglio** - Crea una struttura dati formale per rappresentare un portafoglio
-13. **bilancia_portafoglio** - Bilancia un portafoglio esistente
+10. **valuta_portafoglio** - Valuta un portafoglio esistente analizzando composizione, metriche di rischio e performance
+11. **proponi_portafoglio** - Propone un portafoglio ottimizzato in base a capitale disponibile, obiettivo di investimento, orizzonte temporale e tolleranza al rischio
+12. **crea_portafoglio** - Crea una struttura dati formale per rappresentare un portafoglio con validazione della composizione
+13. **bilancia_portafoglio** - Suggerisce operazioni di ribilanciamento per allineare il portafoglio a una distribuzione target
 
 ## 🧪 Testing
 
